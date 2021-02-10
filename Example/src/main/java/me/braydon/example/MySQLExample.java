@@ -1,14 +1,14 @@
 package me.braydon.example;
 
-import me.braydon.database.impl.MySQLDatabase;
-import me.braydon.database.impl.MySQLProperties;
-import me.braydon.database.impl.MySQLRepository;
-import me.braydon.database.impl.data.Column;
-import me.braydon.database.impl.data.Table;
-import me.braydon.database.impl.data.impl.BooleanColumn;
-import me.braydon.database.impl.data.impl.DoubleColumn;
-import me.braydon.database.impl.data.impl.IntegerColumn;
-import me.braydon.database.impl.data.impl.VarcharColumn;
+import me.braydon.database.impl.mysql.MySQLDatabase;
+import me.braydon.database.impl.mysql.MySQLProperties;
+import me.braydon.database.impl.mysql.MySQLRepository;
+import me.braydon.database.impl.mysql.data.Column;
+import me.braydon.database.impl.mysql.data.Table;
+import me.braydon.database.impl.mysql.data.impl.BooleanColumn;
+import me.braydon.database.impl.mysql.data.impl.DoubleColumn;
+import me.braydon.database.impl.mysql.data.impl.IntegerColumn;
+import me.braydon.database.impl.mysql.data.impl.VarcharColumn;
 
 import java.sql.SQLException;
 import java.util.concurrent.ThreadLocalRandom;

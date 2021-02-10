@@ -1,4 +1,4 @@
-package me.braydon.database.impl.data;
+package me.braydon.database.impl.mysql.data;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

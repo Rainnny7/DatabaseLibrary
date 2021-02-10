@@ -1,8 +1,8 @@
-package me.braydon.database.impl.data.impl;
+package me.braydon.database.impl.mysql.data.impl;
 
 import lombok.Getter;
-import me.braydon.database.impl.data.Column;
-import me.braydon.database.impl.data.Table;
+import me.braydon.database.impl.mysql.data.Column;
+import me.braydon.database.impl.mysql.data.Table;
 
 /**
  * This class represents a {@link Boolean} column in a MySQL {@link Table}

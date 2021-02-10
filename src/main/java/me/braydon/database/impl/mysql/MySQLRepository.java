@@ -1,8 +1,8 @@
-package me.braydon.database.impl;
+package me.braydon.database.impl.mysql;
 
 import lombok.NonNull;
 import me.braydon.database.DatabaseRepository;
-import me.braydon.database.impl.data.Column;
+import me.braydon.database.impl.mysql.data.Column;
 
 import java.sql.*;
 import java.util.function.Consumer;

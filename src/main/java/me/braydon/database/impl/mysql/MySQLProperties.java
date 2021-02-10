@@ -1,4 +1,4 @@
-package me.braydon.database.impl;
+package me.braydon.database.impl.mysql;
 
 import lombok.Getter;
 import lombok.NonNull;

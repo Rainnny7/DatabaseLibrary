@@ -1,9 +1,9 @@
-package me.braydon.database.impl.data;
+package me.braydon.database.impl.mysql.data;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import me.braydon.database.impl.data.impl.IntegerColumn;
+import me.braydon.database.impl.mysql.data.impl.IntegerColumn;
 
 /**
  * This class represents a table in MySQL

@@ -1,3 +1,3 @@
 # DatabaseLibrary
-Advanced Database library for MySQL
+Advanced Database library for MySQL and Redis
 
