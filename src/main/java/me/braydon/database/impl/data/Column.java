@@ -25,7 +25,7 @@ public abstract class Column<T> {
      * @param value the value in the column
      */
     public Column(String name, T value) {
-        this(name, value, -1, false);
+        this(name, value, 0, false);
     }
 
     /**
