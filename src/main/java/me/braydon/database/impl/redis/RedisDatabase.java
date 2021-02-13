@@ -1,15 +1,15 @@
 package me.braydon.database.impl.redis;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import me.braydon.database.IDatabase;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPubSub;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -23,6 +23,7 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
 
     private RedisProperties properties;
     private final Set<RedisPool> pools = new HashSet<>();
+    private MessagingService messagingService;
 
     /**
      * Connect to the database server with the given properties
@@ -42,6 +43,7 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
                 redisPool.setDatabase(this);
                 redisPool.setJedisPool(new JedisPool(properties.getPoolConfig(), properties.getHost(), properties.getPort()));
             }
+            messagingService = new MessagingService(this);
             if (properties.isDebugging())
                 log.info("Setup " + pools.size() + " pools in " + (System.currentTimeMillis() - started) + "ms");
             if (onConnect != null)
@@ -77,6 +79,7 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
                 jedisPool.close();
             }
             pools.clear();
+            messagingService = null;
         }
     }
 
@@ -94,6 +97,15 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
     }
 
     /**
+     * Get a writable {@link RedisPool}
+     *
+     * @return the pool
+     */
+    public RedisPool getPool(boolean writable) {
+        return getPool(RedisPoolType.MASTER);
+    }
+
+    /**
      * Get a {@link RedisPool} with the given {@link RedisPoolType}
      *
      * @param type the type of the pool
@@ -107,9 +119,53 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
                     continue;
                 pools.add(redisPool);
             }
-            if (pools.isEmpty())
+            if (pools.isEmpty()) {
+                if (type == RedisPoolType.SLAVE)
+                    return getPool(RedisPoolType.MASTER);
                 throw new IllegalStateException("Cannot find an available pool for the type " + type.name());
+            }
             return pools.get(ThreadLocalRandom.current().nextInt(pools.size()));
+        }
+    }
+
+    @AllArgsConstructor @Getter
+    public static class MessagingService {
+        private static int ID;
+
+        private final RedisDatabase redisDatabase;
+        private final Map<RedisMessenger, JedisPubSub> messengers = new HashMap<>();
+
+        public void addMessenger(RedisMessenger messenger) {
+            new Thread(() -> {
+                try (Jedis jedis = redisDatabase.getPool(RedisPoolType.SLAVE).getResource()) {
+                    JedisPubSub jedisPubSub = new JedisPubSub() {
+                        @Override
+                        public void onMessage(String channel, String message) {
+                            messenger.onMessage(channel, message);
+                        }
+
+                        @Override
+                        public void onPMessage(String pattern, String channel, String message) {
+                            if (messenger.usingPatterns())
+                                messenger.onPatternMessage(pattern, channel, message);
+                        }
+                    };
+                    synchronized (LOCK) {
+                        messengers.put(messenger, jedisPubSub);
+                    }
+                    if (messenger.usingPatterns())
+                        jedis.psubscribe(jedisPubSub, messenger.getChannels());
+                    else jedis.subscribe(jedisPubSub, messenger.getChannels());
+                }
+            }, "Redis Messenger " + ++ID).start();
+        }
+
+        public void dispatch(String channel, String message) {
+            new Thread(() -> {
+                try (Jedis jedis = redisDatabase.getPool(RedisPoolType.SLAVE).getResource()) {
+                    jedis.publish(channel, message);
+                }
+            }, "Redis Message Dispatcher - " + channel).start();
         }
     }
 }

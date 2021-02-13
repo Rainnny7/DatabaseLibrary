@@ -8,6 +8,6 @@ import lombok.AllArgsConstructor;
  * @author Braydon
  */
 @AllArgsConstructor
-public class DatabaseRepository<T extends IDatabase<?, ?>> {
+public class DatabaseRepository<T extends IDatabase<?>> {
     protected final T database;
 }
