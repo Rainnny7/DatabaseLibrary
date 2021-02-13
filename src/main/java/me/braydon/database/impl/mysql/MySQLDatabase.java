@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.braydon.database.IDatabase;
 
 import java.util.HashMap;
@@ -15,8 +16,10 @@ import java.util.Map;
  *
  * @author Braydon
  */
-@RequiredArgsConstructor @Getter
+@RequiredArgsConstructor @Getter @Slf4j(topic = "MySQLDatabase")
 public class MySQLDatabase implements IDatabase<MySQLProperties, MySQLRepository> {
+    private static final Object LOCK = new Object();
+
     private final Map<String, String> dataSourceProperties;
     private MySQLProperties properties;
     private HikariDataSource dataSource;
@@ -52,22 +55,26 @@ public class MySQLDatabase implements IDatabase<MySQLProperties, MySQLRepository
      */
     @Override
     public IDatabase<MySQLProperties, MySQLRepository> connect(@NonNull MySQLProperties properties, @NonNull String uri, Runnable onConnect) {
-        this.properties = properties;
+        if (dataSource != null)
+            throw new IllegalStateException("Already connected");
+        synchronized (LOCK) {
+            this.properties = properties;
 
-        long started = System.currentTimeMillis();
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(uri);
-        config.setUsername(properties.getUsername());
-        config.setPassword(properties.getPassword());
-        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        for (Map.Entry<String, String> entry : dataSourceProperties.entrySet())
-            config.addDataSourceProperty(entry.getKey(), entry.getValue());
-        dataSource = new HikariDataSource(config);
-        if (properties.isDebugging())
-            debug("Connection established in " + (System.currentTimeMillis() - started) + "ms");
-        if (onConnect != null)
-            onConnect.run();
-        return this;
+            long started = System.currentTimeMillis();
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl(uri);
+            config.setUsername(properties.getUsername());
+            config.setPassword(properties.getPassword());
+            config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+            for (Map.Entry<String, String> entry : dataSourceProperties.entrySet())
+                config.addDataSourceProperty(entry.getKey(), entry.getValue());
+            dataSource = new HikariDataSource(config);
+            if (properties.isDebugging())
+                log.info("Connection established in " + (System.currentTimeMillis() - started) + "ms");
+            if (onConnect != null)
+                onConnect.run();
+            return this;
+        }
     }
 
     /**
@@ -79,6 +86,22 @@ public class MySQLDatabase implements IDatabase<MySQLProperties, MySQLRepository
      */
     @Override
     public MySQLRepository getDummyRepository() {
-        return new MySQLRepository(this);
+        synchronized (LOCK) {
+            return new MySQLRepository(this);
+        }
+    }
+
+    /**
+     * Cleanup the database and close connections
+     */
+    @Override
+    public void cleanup() {
+        synchronized (LOCK) {
+            dataSourceProperties.clear();
+            properties = null;
+            if (dataSource != null && (!dataSource.isClosed()))
+                dataSource.close();
+            dataSource = null;
+        }
     }
 }

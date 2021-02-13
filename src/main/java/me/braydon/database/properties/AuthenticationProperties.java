@@ -12,7 +12,7 @@ import lombok.NonNull;
 public class AuthenticationProperties extends DatabaseProperties {
     private final String username, password;
 
-    public AuthenticationProperties(@NonNull String host, int port, String username, @NonNull String password) {
+    public AuthenticationProperties(@NonNull String host, int port, String username, String password) {
         super(host, port);
         this.username = username;
         this.password = password;

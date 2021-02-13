@@ -56,10 +56,7 @@ public interface IDatabase<P extends DatabaseProperties, R> {
     R getDummyRepository();
 
     /**
-     * Print a debug message for this database type with the given message
-     * @param message the message to print
+     * Cleanup the database and close connections
      */
-    default void debug(String message) {
-        System.out.println("[" + getClass().getName() + " | Debug] " + message);
-    }
+    void cleanup();
 }
