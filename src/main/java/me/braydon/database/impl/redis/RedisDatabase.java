@@ -18,7 +18,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author Braydon
  */
 @Getter @Slf4j(topic = "RedisDatabase")
-public class RedisDatabase implements IDatabase<RedisProperties, RedisRepository> {
+public class RedisDatabase implements IDatabase<RedisProperties> {
     private static final Object LOCK = new Object();
 
     private RedisProperties properties;
@@ -32,7 +32,7 @@ public class RedisDatabase implements IDatabase<RedisProperties, RedisRepository
      * @return the database instance
      */
     @Override
-    public IDatabase<RedisProperties, RedisRepository> connect(@NonNull RedisProperties properties, Runnable onConnect) {
+    public IDatabase<RedisProperties> connect(@NonNull RedisProperties properties, Runnable onConnect) {
         synchronized (LOCK) {
             this.properties = properties;
             if (pools.isEmpty())
@@ -43,7 +43,7 @@ public class RedisDatabase implements IDatabase<RedisProperties, RedisRepository
                 redisPool.setJedisPool(new JedisPool(properties.getPoolConfig(), properties.getHost(), properties.getPort()));
             }
             if (properties.isDebugging())
-                log.info("Setup pools in " + (System.currentTimeMillis() - started) + "ms");
+                log.info("Setup " + pools.size() + " pools in " + (System.currentTimeMillis() - started) + "ms");
             if (onConnect != null)
                 onConnect.run();
         }
@@ -59,22 +59,8 @@ public class RedisDatabase implements IDatabase<RedisProperties, RedisRepository
      * @return the database instance
      */
     @Override
-    public IDatabase<RedisProperties, RedisRepository> connect(@NonNull RedisProperties properties, @NonNull String uri, Runnable onConnect) {
+    public IDatabase<RedisProperties> connect(@NonNull RedisProperties properties, @NonNull String uri, Runnable onConnect) {
         throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Get a dummy connection of the repository for this database type
-     *
-     * @return the repository
-     * @apiNote This will create a new instance of a repository each time, it's recommended to save a reference
-     * of the repository for future use
-     */
-    @Override
-    public RedisRepository getDummyRepository() {
-        synchronized (LOCK) {
-            return new RedisRepository(this);
-        }
     }
 
     /**

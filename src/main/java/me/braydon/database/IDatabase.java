@@ -7,16 +7,16 @@ import me.braydon.database.properties.DatabaseProperties;
  * This class represents a database type
  *
  * @author Braydon
- * @param <P> the properties type
+ * @param <E> the properties type
  * @param <R> the repository type
  */
-public interface IDatabase<P extends DatabaseProperties, R> {
+public interface IDatabase<E extends DatabaseProperties> {
     /**
      * Connect to the database server with the given properties
      * @param properties the properties to connect with
      * @return the database instance
      */
-    default IDatabase<P, R> connect(@NonNull P properties) {
+    default IDatabase<E> connect(@NonNull E properties) {
         return connect(properties, (Runnable) null);
     }
 
@@ -26,7 +26,7 @@ public interface IDatabase<P extends DatabaseProperties, R> {
      * @param onConnect the {@link Runnable} that's called when a connection is established with the database server
      * @return the database instance
      */
-    IDatabase<P, R> connect(@NonNull P properties, Runnable onConnect);
+    IDatabase<E> connect(@NonNull E properties, Runnable onConnect);
 
     /**
      * Connect to the database server with the given properties and uri
@@ -34,7 +34,7 @@ public interface IDatabase<P extends DatabaseProperties, R> {
      * @param uri the uri to use to make a connection to the database server
      * @return the database instance
      */
-    default IDatabase<P, R> connect(@NonNull P properties, @NonNull String uri) {
+    default IDatabase<E> connect(@NonNull E properties, @NonNull String uri) {
         return connect(properties, uri, null);
     }
 
@@ -45,15 +45,7 @@ public interface IDatabase<P extends DatabaseProperties, R> {
      * @param onConnect the {@link Runnable} that's called when a connection is established with the database server
      * @return the database instance
      */
-    IDatabase<P, R> connect(@NonNull P properties, @NonNull String uri, Runnable onConnect);
-
-    /**
-     * Get a dummy connection of the repository for this database type
-     * @return the repository
-     * @apiNote This will create a new instance of a repository each time, it's recommended to save a reference
-     *          of the repository for future use
-     */
-    R getDummyRepository();
+    IDatabase<E> connect(@NonNull E properties, @NonNull String uri, Runnable onConnect);
 
     /**
      * Cleanup the database and close connections

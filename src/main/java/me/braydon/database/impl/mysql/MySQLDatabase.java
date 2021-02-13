@@ -7,6 +7,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.braydon.database.IDatabase;
+import me.braydon.database.IRepositoryDatabase;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +18,7 @@ import java.util.Map;
  * @author Braydon
  */
 @RequiredArgsConstructor @Getter @Slf4j(topic = "MySQLDatabase")
-public class MySQLDatabase implements IDatabase<MySQLProperties, MySQLRepository> {
+public class MySQLDatabase implements IDatabase<MySQLProperties>, IRepositoryDatabase<MySQLRepository> {
     private static final Object LOCK = new Object();
 
     private final Map<String, String> dataSourceProperties;
@@ -40,7 +41,7 @@ public class MySQLDatabase implements IDatabase<MySQLProperties, MySQLRepository
      * @return the database instance
      */
     @Override
-    public IDatabase<MySQLProperties, MySQLRepository> connect(@NonNull MySQLProperties properties, Runnable onConnect) {
+    public IDatabase<MySQLProperties> connect(@NonNull MySQLProperties properties, Runnable onConnect) {
         connect(properties, "jdbc:mysql://" + properties.getHost() + ":" + properties.getPort() + "/" + properties.getDatabase(), onConnect);
         return this;
     }
@@ -54,7 +55,7 @@ public class MySQLDatabase implements IDatabase<MySQLProperties, MySQLRepository
      * @return the database instance
      */
     @Override
-    public IDatabase<MySQLProperties, MySQLRepository> connect(@NonNull MySQLProperties properties, @NonNull String uri, Runnable onConnect) {
+    public IDatabase<MySQLProperties> connect(@NonNull MySQLProperties properties, @NonNull String uri, Runnable onConnect) {
         if (dataSource != null)
             throw new IllegalStateException("Already connected");
         synchronized (LOCK) {
