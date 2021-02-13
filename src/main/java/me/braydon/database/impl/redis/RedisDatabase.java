@@ -130,11 +130,16 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
 
     @AllArgsConstructor @Getter
     public static class MessagingService {
-        private static int ID;
+        private static int MESSENGER_ID, DISPATCH_ID;
 
         private final RedisDatabase redisDatabase;
         private final Map<RedisMessenger, JedisPubSub> messengers = new HashMap<>();
 
+        /**
+         * Add a {@link RedisMessenger}
+         *
+         * @param messenger the messenger to add
+         */
         public void addMessenger(RedisMessenger messenger) {
             new Thread(() -> {
                 try (Jedis jedis = redisDatabase.getPool(RedisPoolType.SLAVE).getResource()) {
@@ -157,15 +162,21 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
                         jedis.psubscribe(jedisPubSub, messenger.getChannels());
                     else jedis.subscribe(jedisPubSub, messenger.getChannels());
                 }
-            }, "Redis Messenger " + ++ID).start();
+            }, "Redis Messenger - " + ++MESSENGER_ID).start();
         }
 
+        /**
+         * Dispatch a Redis command to the given channel with the given message
+         *
+         * @param channel the channel
+         * @param message the message
+         */
         public void dispatch(String channel, String message) {
             new Thread(() -> {
                 try (Jedis jedis = redisDatabase.getPool(RedisPoolType.SLAVE).getResource()) {
                     jedis.publish(channel, message);
                 }
-            }, "Redis Message Dispatcher - " + channel).start();
+            }, "Redis Message Dispatcher - " + ++DISPATCH_ID).start();
         }
     }
 }
