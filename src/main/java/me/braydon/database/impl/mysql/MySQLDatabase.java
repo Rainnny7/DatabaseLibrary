@@ -71,7 +71,7 @@ public class MySQLDatabase implements IDatabase<MySQLProperties>, IRepositoryDat
                 config.addDataSourceProperty(entry.getKey(), entry.getValue());
             dataSource = new HikariDataSource(config);
             if (properties.isDebugging())
-                log.info("Connection established in " + (System.currentTimeMillis() - started) + "ms");
+                log.debug("Connection established in " + (System.currentTimeMillis() - started) + "ms");
             if (onConnect != null)
                 onConnect.run();
             return this;

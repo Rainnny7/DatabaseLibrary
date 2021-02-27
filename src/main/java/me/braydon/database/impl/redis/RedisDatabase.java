@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import me.braydon.database.IDatabase;
+import me.braydon.database.IRepositoryDatabase;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
@@ -18,7 +19,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author Braydon
  */
 @Getter @Slf4j(topic = "RedisDatabase")
-public class RedisDatabase implements IDatabase<RedisProperties> {
+public class RedisDatabase implements IDatabase<RedisProperties>, IRepositoryDatabase<RedisRepository> {
     private static final Object LOCK = new Object();
 
     private RedisProperties properties;
@@ -41,11 +42,11 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
             long started = System.currentTimeMillis();
             for (RedisPool redisPool : pools) {
                 redisPool.setDatabase(this);
-                redisPool.setJedisPool(new JedisPool(properties.getPoolConfig(), properties.getHost(), properties.getPort()));
+                redisPool.setJedisPool(new JedisPool(properties.getPoolConfig(), redisPool.getHost(), redisPool.getPort()));
             }
             messagingService = new MessagingService(this);
             if (properties.isDebugging())
-                log.info("Setup " + pools.size() + " pools in " + (System.currentTimeMillis() - started) + "ms");
+                log.debug("Setup " + pools.size() + " pools in " + (System.currentTimeMillis() - started) + "ms");
             if (onConnect != null)
                 onConnect.run();
         }
@@ -66,6 +67,89 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
     }
 
     /**
+     * Get a dummy connection of the repository for this database type
+     *
+     * @return the repository
+     * @apiNote This will create a new instance of a repository each time, it's recommended to save a reference
+     * of the repository for future use
+     */
+    @Override
+    public RedisRepository getDummyRepository() {
+        synchronized (LOCK) {
+            return new RedisRepository(this);
+        }
+    }
+
+    /**
+     * Add a {@link RedisPool} to the database with the given name and {@link RedisPoolType}
+     *
+     * @param name the name of the pool
+     * @param host the host of the pool
+     * @param port the port of the pool
+     * @param type the type of the pool
+     */
+    public RedisDatabase withPool(@NonNull String name, @NonNull String host, int port, RedisPoolType type) {
+        synchronized (LOCK) {
+            return withPool(name, host, port, null, type);
+        }
+    }
+
+    /**
+     * Add a {@link RedisPool} to the database with the given name and {@link RedisPoolType}
+     *
+     * @param name the name of the pool
+     * @param host the host of the pool
+     * @param port the port of the pool
+     * @param auth the password for the pool
+     * @param type the type of the pool
+     */
+    public RedisDatabase withPool(@NonNull String name, @NonNull String host, int port, String auth, RedisPoolType type) {
+        synchronized (LOCK) {
+            pools.add(new RedisPool(name, host, port, auth, type));
+            return this;
+        }
+    }
+
+    /**
+     * Get a writable {@link RedisPool}
+     *
+     * @return the pool
+     */
+    public RedisPool getPool(boolean writable) {
+        synchronized (LOCK) {
+            return getPool(RedisPoolType.MASTER);
+        }
+    }
+
+    /**
+     * Get a {@link RedisPool} with the given {@link RedisPoolType}
+     *
+     * @param type the type of the pool
+     * @return the pool
+     */
+    public RedisPool getPool(RedisPoolType type) {
+        synchronized (LOCK) {
+            // Fetch all of the RedisPool's with the same type
+            List<RedisPool> pools = new ArrayList<>();
+            for (RedisPool redisPool : this.pools) {
+                if (redisPool.getType() != type)
+                    continue;
+                pools.add(redisPool);
+            }
+            if (pools.isEmpty()) {
+                // If there are no available SLAVE pools, try and fetch a MASTER pool
+                if (type == RedisPoolType.SLAVE) {
+                    if (properties.isDebugging())
+                        log.debug("Cannot find an available pool type of " + type.name() + ", attempting to find a MASTER pool");
+                    return getPool(RedisPoolType.MASTER);
+                }
+                throw new IllegalStateException("Cannot find an available pool for the type " + type.name());
+            }
+            return pools.get(ThreadLocalRandom.current().nextInt(pools.size()));
+        }
+    }
+
+    /**
      * Cleanup the database and close connections
      */
     @Override
@@ -80,51 +164,6 @@ public class RedisDatabase implements IDatabase<RedisProperties> {
             }
             pools.clear();
             messagingService = null;
-        }
-    }
-
-    /**
-     * Add a {@link RedisPool} to the database with the given name and {@link RedisPoolType}
-     *
-     * @param name the name of the pool
-     * @param type the type of the pool
-     */
-    public RedisDatabase withPool(String name, RedisPoolType type) {
-        synchronized (LOCK) {
-            pools.add(new RedisPool(name, type));
-            return this;
-        }
-    }
-
-    /**
-     * Get a writable {@link RedisPool}
-     *
-     * @return the pool
-     */
-    public RedisPool getPool(boolean writable) {
-        return getPool(RedisPoolType.MASTER);
-    }
-
-    /**
-     * Get a {@link RedisPool} with the given {@link RedisPoolType}
-     *
-     * @param type the type of the pool
-     * @return the pool
-     */
-    public RedisPool getPool(RedisPoolType type) {
-        synchronized (LOCK) {
-            List<RedisPool> pools = new ArrayList<>();
-            for (RedisPool redisPool : this.pools) {
-                if (redisPool.getType() != type)
-                    continue;
-                pools.add(redisPool);
-            }
-            if (pools.isEmpty()) {
-                if (type == RedisPoolType.SLAVE)
-                    return getPool(RedisPoolType.MASTER);
-                throw new IllegalStateException("Cannot find an available pool for the type " + type.name());
-            }
-            return pools.get(ThreadLocalRandom.current().nextInt(pools.size()));
         }
     }
 

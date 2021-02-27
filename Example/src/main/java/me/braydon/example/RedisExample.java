@@ -14,11 +14,12 @@ import java.util.Map;
  */
 public class RedisExample {
     public static void main(String[] args) throws InterruptedException {
-        // Connecting to Redis using the provided host, port, password, and database index.
-        // For the sake of testing, we have the debugging mode enabled using the #withDebugging method
+        // Setting up the Redis database with the "test" pool using the provided host, port, and password, and
+        // connecting to the database at index 1. For the sake of testing, we have the debugging mode enabled
+        // using the #withDebugging method
         RedisDatabase database = (RedisDatabase) new RedisDatabase()
-                .withPool("test", RedisPoolType.MASTER) // Adding a MASTER pool with the name "test"
-                .connect(new RedisProperties("127.0.0.1", 6379, null, 1).withDebugging());
+                .withPool("test", "127.0.0.1", RedisProperties.DEFAULT_PORT, RedisPoolType.MASTER) // Adding a MASTER pool with the name "test"
+                .connect(new RedisProperties(1).withDebugging());
 
         // Adding a messenger to the Redis database with the channel "example"
         database.getMessagingService().addMessenger(new RedisMessenger() {

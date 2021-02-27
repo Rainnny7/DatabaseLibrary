@@ -12,11 +12,13 @@ import redis.clients.jedis.JedisPoolConfig;
  */
 @Getter
 public class RedisProperties extends AuthenticationProperties {
+    public static final int DEFAULT_PORT = 6379;
+
     private final int database;
     private final JedisPoolConfig poolConfig;
 
-    public RedisProperties(@NonNull String host, int port, String password, int database) {
-        super(host, port, null, password);
+    public RedisProperties(int database) {
+        super("", -1, null, null);
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxWaitMillis(1000L);
         poolConfig.setMaxTotal(30);
@@ -27,8 +29,8 @@ public class RedisProperties extends AuthenticationProperties {
         this.poolConfig = poolConfig;
     }
 
-    public RedisProperties(@NonNull String host, int port, String password, int database, @NonNull JedisPoolConfig poolConfig) {
-        super(host, port, null, password);
+    public RedisProperties(int database, @NonNull JedisPoolConfig poolConfig) {
+        super("", -1, null, null);
         this.database = database;
         this.poolConfig = poolConfig;
     }

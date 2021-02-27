@@ -11,6 +11,8 @@ import me.braydon.database.properties.AuthenticationProperties;
  */
 @Getter
 public class MySQLProperties extends AuthenticationProperties {
+    public static final int DEFAULT_PORT = 3306;
+
     private final String database;
 
     public MySQLProperties(@NonNull String host, int port, String username, @NonNull String password, @NonNull String database) {

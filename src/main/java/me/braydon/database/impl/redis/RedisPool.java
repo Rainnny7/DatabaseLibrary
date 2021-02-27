@@ -14,7 +14,9 @@ import java.util.Objects;
  */
 @RequiredArgsConstructor @Getter
 public class RedisPool {
-    private final String name;
+    private final String name, host;
+    private final int port;
+    private final String auth;
     private final RedisPoolType type;
     @Setter(AccessLevel.PROTECTED) private RedisDatabase database;
     @Setter(AccessLevel.PROTECTED) private JedisPool jedisPool;
@@ -26,10 +28,10 @@ public class RedisPool {
      */
     public Jedis getResource() {
         if (jedisPool == null || (jedisPool.isClosed()))
-            throw new NullPointerException("Cannot get a resource from the pool");
+            throw new IllegalStateException("Cannot get a resource from the pool (" + (jedisPool == null ? "null" : "closed") + ")");
         Jedis jedis = jedisPool.getResource();
-        if (database.getProperties().getPassword() != null)
-            jedis.auth(database.getProperties().getPassword());
+        if (auth != null)
+            jedis.auth(auth);
         jedis.select(database.getProperties().getDatabase());
         return jedis;
     }

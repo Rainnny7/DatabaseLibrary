@@ -21,7 +21,7 @@ public class MySQLExample {
         // Connecting to MySQL using the provided host, port, username, password, and database name.
         // For the sake of testing, we have the debugging mode enabled using the #withDebugging method
         MySQLDatabase database = (MySQLDatabase) new MySQLDatabase().connect(new MySQLProperties(
-                "127.0.0.1", 3306,
+                "127.0.0.1", MySQLProperties.DEFAULT_PORT,
                 "username",
                 "password",
                 "database").withDebugging());
