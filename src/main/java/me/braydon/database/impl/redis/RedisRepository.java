@@ -11,12 +11,23 @@ public class RedisRepository extends DatabaseRepository<RedisDatabase> {
     }
 
     /**
-     * Get a writable {@link RedisPool}
+     * Get a {@link RedisPool} by it's name
      *
+     * @param name the name of the pool
+     * @return the pool
+     */
+    public RedisPool getPool(String name) {
+        return database.getPool(name);
+    }
+
+    /**
+     * Get a {@link RedisPool} that matches the given writable param.
+     *
+     * @param writable whether or not to get a writable pool
      * @return the pool
      */
     public RedisPool getPool(boolean writable) {
-        return database.getPool(RedisPoolType.MASTER);
+        return getPool(writable);
     }
 
     /**
