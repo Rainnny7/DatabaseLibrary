@@ -27,7 +27,7 @@ public class RedisRepository extends DatabaseRepository<RedisDatabase> {
      * @return the pool
      */
     public RedisPool getPool(boolean writable) {
-        return getPool(writable);
+        return database.getPool(writable);
     }
 
     /**
