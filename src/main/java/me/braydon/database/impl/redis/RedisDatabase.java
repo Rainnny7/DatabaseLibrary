@@ -111,13 +111,31 @@ public class RedisDatabase implements IDatabase<RedisProperties>, IRepositoryDat
     }
 
     /**
-     * Get a writable {@link RedisPool}
+     * Get a {@link RedisPool} by it's name
      *
+     * @param name the name of the pool
+     * @return the pool
+     */
+    public RedisPool getPool(String name) {
+        synchronized (LOCK) {
+            for (RedisPool redisPool : pools) {
+                if (redisPool.getName().equals(name)) {
+                    return redisPool;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Get a {@link RedisPool} that matches the given writable param.
+     *
+     * @param writable whether or not to get a writable pool
      * @return the pool
      */
     public RedisPool getPool(boolean writable) {
         synchronized (LOCK) {
-            return getPool(RedisPoolType.MASTER);
+            return getPool(writable ? RedisPoolType.MASTER : RedisPoolType.SLAVE);
         }
     }
 
@@ -136,15 +154,8 @@ public class RedisDatabase implements IDatabase<RedisProperties>, IRepositoryDat
                     continue;
                 pools.add(redisPool);
             }
-            if (pools.isEmpty()) {
-                // If there are no available SLAVE pools, try and fetch a MASTER pool
-                if (type == RedisPoolType.SLAVE) {
-                    if (properties.isDebugging())
-                        log.debug("Cannot find an available pool type of " + type.name() + ", attempting to find a MASTER pool");
-                    return getPool(RedisPoolType.MASTER);
-                }
+            if (pools.isEmpty())
                 throw new IllegalStateException("Cannot find an available pool for the type " + type.name());
-            }
             return pools.get(ThreadLocalRandom.current().nextInt(pools.size()));
         }
     }
