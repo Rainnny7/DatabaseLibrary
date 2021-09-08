@@ -26,7 +26,7 @@ public class MySQLDatabase implements IDatabase<MySQLProperties>, IRepositoryDat
     private HikariDataSource dataSource;
 
     public MySQLDatabase() {
-        this(new HashMap<>() {{
+        this(new HashMap<String, String>() {{
             put("cachePrepStmts", "true");
             put("prepStmtCacheSize", "250");
             put("prepStmtCacheSqlLimit", "2048");
@@ -42,7 +42,7 @@ public class MySQLDatabase implements IDatabase<MySQLProperties>, IRepositoryDat
      */
     @Override
     public IDatabase<MySQLProperties> connect(@NonNull MySQLProperties properties, Runnable onConnect) {
-        connect(properties, "jdbc:mysql://" + properties.getHost() + ":" + properties.getPort() + "/" + properties.getDatabase(), onConnect);
+        connect(properties, "jdbc:mysql://" + properties.getHost() + ":" + properties.getPort() + "/" + properties.getDatabase() + "?serverTimezone=America/New_York", onConnect);
         return this;
     }
 

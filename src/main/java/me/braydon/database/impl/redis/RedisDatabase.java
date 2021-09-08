@@ -11,6 +11,8 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -21,6 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Getter @Slf4j(topic = "RedisDatabase")
 public class RedisDatabase implements IDatabase<RedisProperties>, IRepositoryDatabase<RedisRepository> {
     private static final Object LOCK = new Object();
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(4);
 
     private RedisProperties properties;
     private final Set<RedisPool> pools = new HashSet<>();
@@ -154,8 +157,15 @@ public class RedisDatabase implements IDatabase<RedisProperties>, IRepositoryDat
                     continue;
                 pools.add(redisPool);
             }
-            if (pools.isEmpty())
+            if (pools.isEmpty()) {
+                // If there are no available SLAVE pools, try and fetch a MASTER pool
+                if (type == RedisPoolType.SLAVE) {
+                    if (properties.isDebugging())
+                        log.debug("Cannot find an available pool type of " + type.name() + ", attempting to find a MASTER pool");
+                    return getPool(RedisPoolType.MASTER);
+                }
                 throw new IllegalStateException("Cannot find an available pool for the type " + type.name());
+            }
             return pools.get(ThreadLocalRandom.current().nextInt(pools.size()));
         }
     }
@@ -222,11 +232,11 @@ public class RedisDatabase implements IDatabase<RedisProperties>, IRepositoryDat
          * @param message the message
          */
         public void dispatch(String channel, String message) {
-            new Thread(() -> {
+            EXECUTOR_SERVICE.execute(() -> {
                 try (Jedis jedis = redisDatabase.getPool(RedisPoolType.SLAVE).getResource()) {
                     jedis.publish(channel, message);
                 }
-            }, "Redis Message Dispatcher - " + ++DISPATCH_ID).start();
+            });
         }
     }
 }
